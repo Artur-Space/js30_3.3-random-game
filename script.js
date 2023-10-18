@@ -1,13 +1,19 @@
 import { Grid } from "./grid.js";
 import { Tile } from "./tile.js";
 
+let grid;
 const gameBoard = document.getElementById("game-board");
+const maxGameResults = 2048;
+// let gameResults = [];
+start();
 
-const grid = new Grid(gameBoard);
-grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
-grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
-setupInputOnce();
-
+function start() {
+  gameBoard.innerHTML = "";
+  grid = new Grid(gameBoard);
+  grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
+  grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
+  setupInputOnce();
+}
 
 function setupInputOnce() {
   window.addEventListener("keydown", handleInput, { once: true });
@@ -52,12 +58,34 @@ async function handleInput(event) {
   grid.getRandomEmptyCell().linkTile(newTile);
 
   if (!canMoveUp() && !canMoveDown() && !canMoveLeft() && !canMoveRight()) {
-    await newTile.waitForAnimationEnd()
-    alert("Try again!")
+    await newTile.waitForAnimationEnd();
+    updateGameResults();
     return;
   }
 
   setupInputOnce();
+}
+
+function updateGameResults() {
+  const currentMaxValue = localStorage.getItem("max");
+  const oResult = {
+    date: Date(),
+    value: currentMaxValue,
+  };
+
+  let lastTenResults = JSON.parse(localStorage.getItem("results"));
+  lastTenResults ? lastTenResults.push(oResult) : (lastTenResults = [oResult]);
+
+  localStorage.setItem("results", JSON.stringify(lastTenResults));
+  alert(`Your result is ${currentMaxValue}!`);
+  let resultsStr = lastTenResults.slice(-10)
+    .map((o, index) => `${index + 1}. Date - ${new Date(o.date).toLocaleString()}; Result - ${o.value}`)
+    .join("\n");
+
+  alert(`Last 10 results: \n${resultsStr}`);
+  // const lastTenResults = localStorage.getItem()
+  localStorage.setItem("max", 0);
+  start();
 }
 
 async function moveUp() {
@@ -79,11 +107,11 @@ async function moveRight() {
 async function slideTiles(groupedCells) {
   const promises = [];
 
-  groupedCells.forEach(group => slideTilesInGroup(group, promises));
+  groupedCells.forEach((group) => slideTilesInGroup(group, promises));
 
   await Promise.all(promises);
-  grid.cells.forEach(cell => {
-    cell.hasTileForMerge() && cell.mergeTiles()
+  grid.cells.forEach((cell) => {
+    cell.hasTileForMerge() && cell.mergeTiles();
   });
 }
 
@@ -135,7 +163,7 @@ function canMoveRight() {
 }
 
 function canMove(groupedCells) {
-  return groupedCells.some(group => canMoveInGroup(group));
+  return groupedCells.some((group) => canMoveInGroup(group));
 }
 
 function canMoveInGroup(group) {
